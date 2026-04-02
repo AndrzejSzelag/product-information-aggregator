@@ -11,7 +11,7 @@ This project is a resilient Spring Boot service that aggregates product data fro
 
 ## How to Run
 
-**Prerequisites:** Java 21+, Maven 3.8+
+**Prerequisites:** Java 21+, Maven 3.8+, Docker Desktop
 
 ```bash
 git clone <repo-url>
