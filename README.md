@@ -134,7 +134,7 @@ Mocks extend `AbstractMockService`, which injects:
  
 ```
 Stage 1 (maven:3.9.6-eclipse-temurin-21-alpine)  ~500 MB  →  compile + package
-Stage 2 (eclipse-temurin:21-jre-alpine)            ~90 MB  →  copy .jar only
+Stage 2 (eclipse-temurin:21-jre-alpine)          ~90 MB   →  copy .jar only
 ```
  
 The final image contains no Maven, no source code, and no JDK — only the JRE and the application jar. The application runs under a non-root `spring` user. Spring Boot Actuator exposes `/actuator/health` for Docker Compose health checks.
