@@ -5,7 +5,7 @@
 
 # Product Information Aggregator
 
-This project is a resilient Spring Boot service that aggregates product data from multiple upstream domains — **Catalog**, **Pricing**, **Availability**, and **Customer** — into a single, market-aware response. 
+This project is a resilient Spring Boot service that aggregates product data from multiple upstream domains - **Catalog**, **Pricing**, **Availability**, and **Customer** - into a single, market-aware response. 
 
 ![Dashboard](./src/main/resources/static/dashboard.png)
 
