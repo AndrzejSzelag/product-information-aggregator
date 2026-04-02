@@ -14,7 +14,7 @@ This project is a resilient Spring Boot service that aggregates product data fro
 **Prerequisites:** Java 21+, Maven 3.8+, Docker Desktop
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/AndrzejSzelag/product-information-aggregator.git
 cd product-information-aggregator
 mvn clean package -DskipTests
 java -jar target/product-information-aggregator-0.0.1-SNAPSHOT.jar
