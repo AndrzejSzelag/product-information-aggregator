@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Product Information Aggregator</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+  <header>
+    <h1>Product Information Aggregator</h1>
+    <span>v0.0.1</span>
+    <div class="health-badge" onclick="checkHealth()">
+      <div class="dot" id="health-dot"></div>
+      <span id="health-text">health check</span>
+    </div>
+  </header>
+
+  <main>
+    <div>
+      <div class="panel">
+        <div class="panel-header">
+          <h2>Scenario</h2>
+        </div>
+
+        <div class="scenario" onclick="loadScenario('bolt-pl')" id="s-bolt-pl">
+          <div>
+            <div class="scenario-name">Hex Bolt M8x50 — PL</div>
+            <div class="scenario-sub">anonymous · pl-PL · PLN</div>
+          </div>
+          <span class="badge ok">200 OK</span>
+        </div>
+
+        <div class="scenario" onclick="loadScenario('filter-nl')" id="s-filter-nl">
+          <div>
+            <div class="scenario-name">Hydraulic Filter — NL</div>
+            <div class="scenario-sub">CUSTOMER-001 PREMIUM · nl-NL · EUR</div>
+          </div>
+          <span class="badge ok">200 + 15%</span>
+        </div>
+
+        <div class="scenario" onclick="loadScenario('bearing-de')" id="s-bearing-de">
+          <div>
+            <div class="scenario-name">Ball Bearing — DE</div>
+            <div class="scenario-sub">CUSTOMER-002 WHOLESALE · de-DE · EUR</div>
+          </div>
+          <span class="badge ok">200 + 20%</span>
+        </div>
+
+        <div class="scenario" onclick="loadScenario('bearing-gb')" id="s-bearing-gb">
+          <div>
+            <div class="scenario-name">Ball Bearing — GB</div>
+            <div class="scenario-sub">CUSTOMER-003 STANDARD · en-GB · GBP</div>
+          </div>
+          <span class="badge ok">200 + 5%</span>
+        </div>
+
+        <div class="scenario" onclick="loadScenario('not-found')" id="s-not-found">
+          <div>
+            <div class="scenario-name">Unknown Product</div>
+            <div class="scenario-sub">UNKNOWN-PART · pl-PL</div>
+          </div>
+          <span class="badge err">404</span>
+        </div>
+
+        <div class="scenario" onclick="loadScenario('no-market')" id="s-no-market">
+          <div>
+            <div class="scenario-name">Missing Market Param</div>
+            <div class="scenario-sub">missing required param</div>
+          </div>
+          <span class="badge err">400</span>
+        </div>
+
+        <div class="divider">Custom request</div>
+
+        <div class="custom-form">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Product ID</label>
+              <select id="sel-product" onchange="updateUrl()">
+                <option value="BOLT-M8-50">BOLT-M8-50</option>
+                <option value="FILTER-HYD-001">FILTER-HYD-001</option>
+                <option value="BEARING-6205-2RS">BEARING-6205-2RS</option>
+                <option value="UNKNOWN-PART">UNKNOWN-PART</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Market</label>
+              <select id="sel-market" onchange="updateUrl()">
+                <option value="pl-PL">pl-PL</option>
+                <option value="nl-NL">nl-NL</option>
+                <option value="de-DE">de-DE</option>
+                <option value="en-GB">en-GB</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Customer ID (optional)</label>
+            <select id="sel-customer" onchange="updateUrl()">
+              <option value="">— anonymous —</option>
+              <option value="CUSTOMER-001">CUSTOMER-001 · PREMIUM</option>
+              <option value="CUSTOMER-002">CUSTOMER-002 · WHOLESALE</option>
+              <option value="CUSTOMER-003">CUSTOMER-003 · STANDARD</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="url-bar" id="url-bar">GET /api/v1/products/BOLT-M8-50?market=pl-PL</div>
+
+        <button class="send-btn" id="send-btn" onclick="sendRequest()">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M2 2l12 6-12 6V9.5l8-1.5-8-1.5V2z" />
+          </svg>
+          Send Request
+        </button>
+      </div>
+    </div>
+
+    <div class="result-panel" id="result-area">
+      <div class="empty-state">
+        <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.5">
+          <rect x="6" y="6" width="28" height="28" rx="4" />
+          <line x1="13" y1="15" x2="27" y2="15" />
+          <line x1="13" y1="20" x2="27" y2="20" />
+          <line x1="13" y1="25" x2="21" y2="25" />
+        </svg>
+        <p>Select a scenario or create a custom request</p>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const scenarios = {
+      'bolt-pl': { product: 'BOLT-M8-50', market: 'pl-PL', customer: '' },
+      'filter-nl': { product: 'FILTER-HYD-001', market: 'nl-NL', customer: 'CUSTOMER-001' },
+      'bearing-de': { product: 'BEARING-6205-2RS', market: 'de-DE', customer: 'CUSTOMER-002' },
+      'bearing-gb': { product: 'BEARING-6205-2RS', market: 'en-GB', customer: 'CUSTOMER-003' },
+      'not-found': { product: 'UNKNOWN-PART', market: 'pl-PL', customer: '' },
+      'no-market': { product: 'BOLT-M8-50', market: '', customer: '' },
+    };
+
+    function updateUrl() {
+      const p = document.getElementById('sel-product').value;
+      const m = document.getElementById('sel-market').value;
+      const c = document.getElementById('sel-customer').value;
+      let url = `/api/v1/products/${p}`;
+      const params = [];
+      if (m) params.push('market=' + m);
+      if (c) params.push('customerId=' + c);
+      if (params.length) url += '?' + params.join('&');
+      document.getElementById('url-bar').textContent = 'GET ' + url;
+    }
+
+    function loadScenario(key) {
+      document.querySelectorAll('.scenario').forEach(el => el.classList.remove('active'));
+      document.getElementById('s-' + key)?.classList.add('active');
+      const s = scenarios[key];
+      document.getElementById('sel-product').value = s.product;
+      document.getElementById('sel-market').value = s.market;
+      document.getElementById('sel-customer').value = s.customer;
+      updateUrl();
+      sendRequest();
+    }
+
+    async function sendRequest() {
+      const p = document.getElementById('sel-product').value;
+      const m = document.getElementById('sel-market').value;
+      const c = document.getElementById('sel-customer').value;
+      const btn = document.getElementById('send-btn');
+      btn.disabled = true;
+      btn.innerHTML = '<div class="spinner"></div> Loading…';
+
+      let url = `/api/v1/products/${p}`;
+      const params = [];
+      if (m) params.push('market=' + m);
+      if (c) params.push('customerId=' + c);
+      if (params.length) url += '?' + params.join('&');
+
+      const t0 = performance.now();
+      try {
+        const resp = await fetch(url);
+        const ms = Math.round(performance.now() - t0);
+        const data = await resp.json();
+        renderResult(resp.status, data, ms, url);
+      } catch (e) {
+        renderError(e.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M2 2l12 6-12 6V9.5l8-1.5-8-1.5V2z"/></svg> Send Request';
+      }
+    }
+
+    function renderResult(status, data, ms, url) {
+      const ok = status >= 200 && status < 300;
+      const ra = document.getElementById('result-area');
+
+      let metricsHtml = '';
+      let detailHtml = '';
+      let degraded = false;
+
+      // DEGRADED
+      if (ok && data.dataAvailability) {
+        const da = data.dataAvailability;
+        degraded =
+          da.pricingAvailable === false ||
+          da.availabilityAvailable === false ||
+          da.customerContextAvailable === false;
+      }
+
+      // metrics-grid
+      metricsHtml += `<div class="metrics-grid">
+        <div class="metric">
+          <div class="metric-label">HTTP Status</div>
+          <div class="metric-val http-status ${ok ? 'ok' : 'err'}">${status}</div>
+          <div class="metric-sub">${ok ? 'Success' : 'Error'}</div>
+        </div>
+        ${degraded ? `
+        <div class="metric" style="background:rgba(255,165,0,0.1)">
+          <div class="metric-label">System state</div>
+          <div class="metric-val" style="color:orange">DEGRADED</div>
+          <div class="metric-sub">partial data</div>
+        </div>` : ok ? `
+        <div class="metric">
+          <div class="metric-label">System state</div>
+          <div class="metric-val" style="color:var(--green-text)">HEALTHY</div>
+          <div class="metric-sub">all services ok</div>
+        </div>` : ''}`;
+
+      if (ok) {
+        if (data.pricing) {
+          const disc = (parseFloat(data.pricing.customerDiscount) * 100).toFixed(0);
+          metricsHtml += `
+          <div class="metric">
+            <div class="metric-label">Final Price</div>
+            <div class="metric-val">${data.pricing.finalPrice}</div>
+            <div class="metric-sub">${data.pricing.currency}${disc > 0 ? ' · ' + disc + '% off' : ''}</div>
+          </div>`;
+        } else {
+          metricsHtml += `
+          <div class="metric">
+            <div class="metric-label">Final Price</div>
+            <div class="metric-val" style="font-size:15px;color:var(--text3)">Unavailable</div>
+            <div class="metric-sub">service failed</div>
+          </div>`;
+        }
+
+        if (data.availability) {
+          metricsHtml += `
+          <div class="metric">
+            <div class="metric-label">Stock & Logistics</div>
+            <div class="metric-val" style="color:${data.availability.inStock ? 'var(--green-text)' : 'var(--red-text)'}">${data.availability.stockLevel}</div>
+            <div class="metric-sub">${data.availability.warehouseLocation}</div>
+          </div>`;
+        } else {
+          metricsHtml += `
+          <div class="metric">
+            <div class="metric-label">Stock</div>
+            <div class="metric-val" style="font-size:15px;color:var(--text3)">Unknown</div>
+            <div class="metric-sub">service failed</div>
+          </div>`;
+        }
+      }
+      metricsHtml += `</div>`; // metrics-grid
+
+      if (ok && data.product) {
+        // images
+        let imagesHtml = '';
+        if (data.product.imageUrls && data.product.imageUrls.length) {
+          imagesHtml += `<div style="display:flex; align-items:center; border-bottom: 1px solid var(--border); background: #fcfcfc">`;
+          data.product.imageUrls.forEach(url => {
+            imagesHtml += `<img src="${url}" style="width:80px; height:80px; object-fit:contain; padding:10px" onerror="this.onerror=null;this.src='https://placehold.co/80x80?text=No+Img'">`;
+          });
+          imagesHtml += `<div style="padding: 12px;"><p style="margin: 0; color: var(--text2); font-size: 14px; line-height: 1.5;">${data.product.description}</p></div></div>`;
+        } else {
+          imagesHtml = `<div style="padding: 12px; border-bottom: 1px solid var(--border)"><p style="margin: 0; color: var(--text2); font-size: 14px; line-height: 1.5;">${data.product.description}</p></div>`;
+        }
+
+        detailHtml += `
+        <div class="info-card">
+          <div class="info-card-header">
+            <span>Detailed Product Info</span>
+            <span style="font-size:12px;color:var(--text3)">${data.product.category}</span>
+          </div>
+          ${imagesHtml}
+          <div class="fields-grid">
+            <div class="field-item"><div class="field-k">Product ID</div><div class="field-v">${data.product.id}</div></div>
+            <div class="field-item"><div class="field-k">Material</div><div class="field-v">${data.product.specifications.material || '—'}</div></div>
+            <div class="field-item"><div class="field-k">Thread</div><div class="field-v">${data.product.specifications.thread || '—'}</div></div>
+            <div class="field-item"><div class="field-k">Base Price</div><div class="field-v">${data.pricing ? data.pricing.basePrice + ' ' + data.pricing.currency : '—'}</div></div>
+          </div>
+        </div>`;
+      }
+
+      // Customer Insights
+      if (ok && data.customer && data.customer.customerId) {
+        detailHtml += `
+        <div class="info-card" style="margin-top: 16px;">
+          <div class="info-card-header">Customer Insights</div>
+          <div class="fields-grid">
+            <div class="field-item">
+              <div class="field-k">Interests</div>
+              <div class="field-v">${data.customer.preferences.map(p => `<span class="pill yes" style="font-size:10px">${p}</span>`).join(' ')}</div>
+            </div>
+            <div class="field-item">
+              <div class="field-k">Recent Orders</div>
+              <div class="field-v" style="font-family: monospace; font-size: 11px;">${data.customer.purchaseHistory.join(', ') || 'None'}</div>
+            </div>
+          </div>
+        </div>`;
+      }
+
+      const jsonStr = JSON.stringify(data, null, 2);
+      ra.innerHTML = metricsHtml + detailHtml + `
+        <p class="timing">Response time: ${ms} ms &nbsp;·&nbsp; ${url}</p>
+        <div class="json-wrap">
+          <div class="json-toolbar"><span>JSON Response</span><button class="copy-btn" onclick="copyJson()">Copy</button></div>
+          <pre id="json-output">${escapeHtml(jsonStr)}</pre>
+        </div>`;
+    }
+
+    function renderError(msg) {
+      document.getElementById('result-area').innerHTML = `
+        <div class="info-card">
+          <div class="info-card-header" style="color:var(--red-text)">Connection error</div>
+          <div style="padding:16px;font-size:13px;color:var(--text2)">${msg}<br><br>Make sure the service is running on <code>localhost:8080</code></div>
+        </div>`;
+    }
+
+    function copyJson() {
+      const text = document.getElementById('json-output')?.textContent || '';
+      navigator.clipboard.writeText(text).catch(() => { });
+      const btn = event.target;
+      btn.textContent = 'Copied!';
+      setTimeout(() => btn.textContent = 'Copy', 1500);
+    }
+
+    function escapeHtml(s) {
+      return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    async function checkHealth() {
+      const dot = document.getElementById('health-dot');
+      const txt = document.getElementById('health-text');
+      dot.className = 'dot checking'; txt.textContent = 'checking…';
+      try {
+        const r = await fetch('/actuator/health', { signal: AbortSignal.timeout(3000) });
+        if (r.ok) { dot.className = 'dot ok'; txt.textContent = 'UP'; }
+        else { dot.className = 'dot err'; txt.textContent = 'status ' + r.status; }
+      } catch {
+        dot.className = 'dot err'; txt.textContent = 'unreachable';
+      }
+    }
+
+    updateUrl();
+    checkHealth();
+  </script>
+</body>
+
+</html>

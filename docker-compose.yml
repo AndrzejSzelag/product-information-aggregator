@@ -1,0 +1,26 @@
+services:
+  aggregator-service:
+    build: .
+    container_name: pia-aggregator
+    ports:
+      - "8080:8080"
+    environment:
+      # Application Identity
+      - SPRING_APPLICATION_NAME=Product-Information-Aggregator
+      - SERVER_PORT=8080
+      # Performance: Enable Virtual Threads (Java 21)
+      - SPRING_THREADS_VIRTUAL_ENABLED=true
+      # Logging Levels
+      - LOGGING_LEVEL_COM_SZELAG_PIA=DEBUG
+      - LOGGING_LEVEL_ROOT=WARN
+      # Actuator & Health Checks
+      - MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE=health,info
+      - MANAGEMENT_ENDPOINT_HEALTH_SHOW_DETAILS=always
+      # JVM Tuning for Docker (JVM memory limits)
+      - JAVA_TOOL_OPTIONS=-Xmx512m -Xms256m
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
