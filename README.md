@@ -11,7 +11,7 @@ This project is a resilient Spring Boot service that aggregates product data fro
 
 ## How to Run
 
-**Prerequisites:** Java 21+, Maven 3.8+ (Docker Desktop - optional)
+**Prerequisites:** Java 21+, Maven 3.8+, Docker Desktop (optional)
 
 ```bash
 git clone https://github.com/AndrzejSzelag/product-information-aggregator.git
@@ -83,7 +83,7 @@ mvn test
 
 ## Key Design Decisions
  
-### 1. Parallel Execution — Virtual Threads (Java 21)
+### 1. Parallel Execution - Virtual Threads (Java 21)
  
 The three optional upstream calls (Pricing, Availability, Customer) are dispatched concurrently via `CompletableFuture.supplyAsync()` on a `VirtualThreadPerTaskExecutor`. The mandatory Catalog call runs on the calling thread first, blocking only if the catalog itself is unavailable.
  
@@ -91,7 +91,7 @@ The three optional upstream calls (Pricing, Availability, Customer) are dispatch
 Upstream calls are pure I/O - the thread is idle while waiting for a response. Virtual threads are scheduled by the JVM, not the OS, so thousands can be parked cheaply. There is no pool to size, no risk of thread starvation, and no queue to tune. Total response latency converges to `max(individual latencies)` rather than their sum.
  
 **Why not `CompletableFuture.allOf()`?**
-`allOf` propagates the first exception and cancels the pipeline. Partial failures are a first-class requirement here, so each future is collected individually via a `collect()` helper that catches `CompletionException` and wraps the result in a `PartialResult<T>` value object — either a success with a non-null value, or a failure with a reason string.
+`allOf` propagates the first exception and cancels the pipeline. Partial failures are a first-class requirement here, so each future is collected individually via a `collect()` helper that catches `CompletionException` and wraps the result in a `PartialResult<T>` value object - either a success with a non-null value, or a failure with a reason string.
  
 ### 2. Hard vs. Soft Dependencies
  
