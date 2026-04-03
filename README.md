@@ -108,7 +108,7 @@ The `dataAvailability` block in every response gives the frontend precise, field
  
 Every upstream service is represented by a Java interface (`CatalogService`, `PricingService`, etc.). `AggregatorService` depends only on those interfaces — it has no knowledge of mocks, HTTP clients, or gRPC stubs. Replacing a mock with a real implementation means creating one class that implements the interface and registering it as a Spring bean. `AggregatorService` requires zero changes.
  
-### 4. Immutable Data Model — Java Records
+### 4. Immutable Data Model (Java Records)
  
 All DTOs (`ProductCatalog`, `ProductPricing`, `AggregatedProductResponse`, etc.) are Java Records. Records are immutable by definition, which is critical when the same object may be read concurrently by multiple threads after a `CompletableFuture` join. There is no defensive copying, no synchronization, and no risk of partial writes.
  
@@ -128,9 +128,9 @@ Mocks extend `AbstractMockService`, which injects:
  
 ### 6. Testability Without Real Threads
  
-`AggregatorService` exposes a package-private constructor that accepts an `ExecutorService`. Unit tests inject a `SameThreadExecutor` — a minimal `AbstractExecutorService` that runs every task synchronously on the calling thread. This makes `CompletableFuture.supplyAsync()` behave as a direct call, giving deterministic, fast tests without `Thread.sleep()` or `await()` hacks.
+`AggregatorService` exposes a package-private constructor that accepts an `ExecutorService`. Unit tests inject a `SameThreadExecutor` - a minimal `AbstractExecutorService` that runs every task synchronously on the calling thread. This makes `CompletableFuture.supplyAsync()` behave as a direct call, giving deterministic, fast tests without `Thread.sleep()` or `await()` hacks.
  
-### 7. Docker — Multi-Stage Build
+### 7. Docker (Multi-Stage Build)
  
 ```
 Stage 1 (maven:3.9.6-eclipse-temurin-21-alpine)  ~500 MB  →  compile + package
@@ -140,40 +140,3 @@ Stage 2 (eclipse-temurin:21-jre-alpine)          ~90 MB   →  copy .jar only
 The final image contains no Maven, no source code, and no JDK — only the JRE and the application jar. The application runs under a non-root `spring` user. Spring Boot Actuator exposes `/actuator/health` for Docker Compose health checks.
  
 **JVM flags:** `-XX:+UseZGC -XX:+ZGenerational` enables Generational ZGC, the recommended GC for Java 21 Virtual Thread workloads. It handles the high churn of short-lived objects produced by concurrent upstream calls with sub-millisecond pause times.
- 
----
- 
-## What I Would Do Differently With More Time
- 
-**Timeouts and Circuit Breakers**
-Every `CompletableFuture` should have `.orTimeout(200, TimeUnit.MILLISECONDS)` to cap worst-case latency. Beyond that, Resilience4j Circuit Breakers would prevent repeatedly calling a service that is clearly down — after N consecutive failures, the breaker opens and the aggregator returns a cached or degraded result immediately, saving resources and reducing tail latency.
- 
-**Caching**
-Product catalog data (name, description, specs) changes on the order of hours or days. A short TTL cache (Caffeine for in-process, Redis for multi-instance) would eliminate redundant catalog calls and reduce p99 latency significantly. Pricing and availability data would use shorter TTLs or bypass the cache entirely.
- 
-**Contract Testing**
-With Pact or Spring Cloud Contract, each mock would generate a published contract. CI would verify that any change to the upstream service's schema is caught before it reaches production — not after.
- 
-**Structured Logging and Tracing**
-Each request should carry a correlation ID propagated through all async futures. Combined with structured JSON logs and a distributed trace (OpenTelemetry → Tempo or Jaeger), this makes degraded responses debuggable across services.
- 
-**Metrics**
-Micrometer counters per service (success / failure / timeout) exposed via `/actuator/prometheus` would make the reliability percentages visible in Grafana and allow alerting on degradation rate spikes.
- 
----
- 
-## Design Question: Flash Sales
- 
-**How to handle prices changing every few minutes?**
- 
-**1. Real-time priority over caching**
-For flash-sale products, the aggregator must bypass any price cache and fetch live. The cleanest signal is an event: the Pricing team publishes a Kafka message (`PriceChangedEvent { productId, validFrom, validUntil }`) and the aggregator evicts that product's price entry immediately. This avoids polling and keeps cache TTLs long for normal products while ensuring flash-sale prices are always fresh.
- 
-**2. Expiry metadata in the response**
-Add a `validUntil: Instant` field to `ProductPricing`. The frontend can render a live countdown ("Offer ends in 02:45") without polling the backend. When the countdown expires, the client re-fetches once — a controlled, predictable spike instead of a thundering herd.
- 
-**3. Thundering herd protection**
-When a flash sale starts and thousands of users hit the same product simultaneously, only one request should reach the upstream Pricing service. A Cache Aside with request coalescing (one thread fetches, others wait on the same future) ensures the upstream sees a single call per cache miss. Caffeine supports this natively with `AsyncLoadingCache`. For multi-instance deployments, a Redis lock or a Singleflight pattern at the gateway level achieves the same effect.
- 
-**4. Model the "price window" explicitly**
-A `FlashPriceContext { originalPrice, flashPrice, startsAt, endsAt }` type makes the temporary nature of the price a first-class concept in the domain model, rather than a runtime flag. This prevents the aggregator from caching a flash price beyond its `endsAt` window by accident.
