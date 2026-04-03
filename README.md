@@ -29,6 +29,7 @@ docker-compose up --build
 ```
 
 **Web UI**
+
 A built-in testing dashboard is available at **http://localhost:8080**. It supports preset scenarios and custom requests with real-time JSON responses.
 
 **Example curl Requests**
