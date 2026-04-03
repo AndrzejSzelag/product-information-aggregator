@@ -43,10 +43,10 @@ curl "http://localhost:8080/api/v1/products/FILTER-HYD-001?market=nl-NL&customer
 # Wholesale customer (de-DE, EUR)
 curl "http://localhost:8080/api/v1/products/BEARING-6205-2RS?market=de-DE&customerId=CUSTOMER-002"
 
-# Product not found → 404
+# Product not found (404)
 curl "http://localhost:8080/api/v1/products/UNKNOWN-PART?market=en-GB"
 
-# Missing required param → 400
+# Missing required param (400)
 curl "http://localhost:8080/api/v1/products/BOLT-M8-50"
 ```
 
